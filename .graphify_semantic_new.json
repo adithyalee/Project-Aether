@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    {"id": "blueprint_vision", "label": "Vision: Self-Evolving Digital Twin", "file_type": "document", "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"id": "blueprint_phase1", "label": "Phase 1: Foundation", "file_type": "document", "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"id": "blueprint_phase2", "label": "Phase 2: Browser Eyes", "file_type": "document", "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"id": "blueprint_phase3", "label": "Phase 3: Presence", "file_type": "document", "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"id": "blueprint_phase4", "label": "Phase 4: Full Autonomy", "file_type": "document", "source_file": "PROJECT_AETHER_BLUEPRINT.md"}
+  ],
+  "edges": [
+    {"source": "blueprint_vision", "target": "blueprint_phase1", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"source": "blueprint_vision", "target": "blueprint_phase2", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"source": "blueprint_vision", "target": "blueprint_phase3", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"source": "blueprint_vision", "target": "blueprint_phase4", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"source": "blueprint_phase1", "target": "memory_manager_py", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.9, "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"source": "blueprint_phase1", "target": "pc_controls_py", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.9, "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"source": "blueprint_phase2", "target": "open_url", "relation": "implements", "confidence": "INFERRED", "confidence_score": 0.85, "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"source": "blueprint_phase3", "target": "initialize_greeting", "relation": "implements", "confidence": "INFERRED", "confidence_score": 0.8, "source_file": "PROJECT_AETHER_BLUEPRINT.md"},
+    {"source": "blueprint_phase4", "target": "save_new_skill", "relation": "supports", "confidence": "INFERRED", "confidence_score": 0.75, "source_file": "PROJECT_AETHER_BLUEPRINT.md"}
+  ],
+  "hyperedges": [],
+  "input_tokens": 1000,
+  "output_tokens": 500
+}

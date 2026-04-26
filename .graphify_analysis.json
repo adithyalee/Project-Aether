@@ -1,0 +1,188 @@
+{
+  "communities": {
+    "0": [
+      "brain_memory_manager_py",
+      "d_project_aether_brain_memory_manager_py",
+      "main_aetheragent_listen",
+      "main_rationale_200",
+      "memory_manager_memorymanager",
+      "memory_manager_memorymanager_get_mistakes",
+      "memory_manager_memorymanager_init",
+      "memory_manager_memorymanager_log_mistake",
+      "memory_manager_rationale_39",
+      "memory_manager_rationale_9"
+    ],
+    "1": [
+      "d_project_aether_main_py",
+      "main_aetheragent",
+      "main_aetheragent_init",
+      "main_aetheragent_initialize_system_context",
+      "main_aetheragent_load_identity",
+      "main_aetheragent_speak",
+      "main_main",
+      "main_py",
+      "main_rationale_205"
+    ],
+    "2": [
+      "d_project_aether_tools_pc_controls_py",
+      "pc_controls_get_disk_space",
+      "pc_controls_log_mistake",
+      "pc_controls_open_url",
+      "pc_controls_rationale_22",
+      "pc_controls_rationale_32",
+      "pc_controls_rationale_8",
+      "tools_pc_controls_py"
+    ],
+    "3": [
+      "blueprint_phase1",
+      "blueprint_phase2",
+      "blueprint_phase3",
+      "blueprint_phase4",
+      "blueprint_vision",
+      "tech_obsidian",
+      "tech_ollama"
+    ],
+    "4": [
+      "main_aetheragent_chat",
+      "main_aetheragent_initialize_greeting",
+      "main_rationale_49",
+      "memory_manager_memorymanager_log_skill",
+      "memory_manager_rationale_24"
+    ],
+    "5": [
+      "tech_playwright"
+    ],
+    "6": [
+      "tech_whisper"
+    ]
+  },
+  "cohesion": {
+    "0": 0.2,
+    "1": 0.36,
+    "2": 0.32,
+    "3": 0.29,
+    "4": 0.4,
+    "5": 1.0,
+    "6": 1.0
+  },
+  "gods": [
+    {
+      "id": "main_aetheragent",
+      "label": "AetherAgent",
+      "degree": 11
+    },
+    {
+      "id": "memory_manager_memorymanager",
+      "label": "MemoryManager",
+      "degree": 11
+    },
+    {
+      "id": "main_main",
+      "label": "main()",
+      "degree": 6
+    },
+    {
+      "id": "blueprint_vision",
+      "label": "Vision: Self-Evolving Digital Twin",
+      "degree": 4
+    },
+    {
+      "id": "pc_controls_log_mistake",
+      "label": "log_mistake()",
+      "degree": 3
+    },
+    {
+      "id": "pc_controls_get_disk_space",
+      "label": "get_disk_space()",
+      "degree": 3
+    },
+    {
+      "id": "pc_controls_open_url",
+      "label": "open_url()",
+      "degree": 3
+    },
+    {
+      "id": "blueprint_phase1",
+      "label": "Phase 1: Foundation",
+      "degree": 3
+    },
+    {
+      "id": "main_rationale_49",
+      "label": "Generates the initial personalized greeting.",
+      "degree": 2
+    },
+    {
+      "id": "main_rationale_200",
+      "label": "Placeholder for 'Ears' (STT) module.",
+      "degree": 2
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Generates the initial personalized greeting.",
+      "target": "MemoryManager",
+      "source_files": [
+        "D:\\Project Aether\\main.py",
+        "D:\\Project Aether\\brain\\memory_manager.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities; peripheral node `Generates the initial personalized greeting.` unexpectedly reaches hub `MemoryManager`"
+    },
+    {
+      "source": "Placeholder for 'Voice' (TTS) module.",
+      "target": "MemoryManager",
+      "source_files": [
+        "D:\\Project Aether\\main.py",
+        "D:\\Project Aether\\brain\\memory_manager.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities; peripheral node `Placeholder for 'Voice' (TTS) module.` unexpectedly reaches hub `MemoryManager`"
+    },
+    {
+      "source": "AetherAgent",
+      "target": "MemoryManager",
+      "source_files": [
+        "D:\\Project Aether\\main.py",
+        "D:\\Project Aether\\brain\\memory_manager.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "Placeholder for 'Ears' (STT) module.",
+      "target": "MemoryManager",
+      "source_files": [
+        "D:\\Project Aether\\main.py",
+        "D:\\Project Aether\\brain\\memory_manager.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `Placeholder for 'Ears' (STT) module.` unexpectedly reaches hub `MemoryManager`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `MemoryManager` connect `Community 0` to `Community 1`, `Community 4`?",
+      "why": "High betweenness centrality (0.196) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `AetherAgent` connect `Community 1` to `Community 0`, `Community 4`?",
+      "why": "High betweenness centrality (0.130) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 5 inferred relationships involving `MemoryManager` (e.g. with `AetherAgent` and `Generates the initial personalized greeting.`) actually correct?",
+      "why": "`MemoryManager` has 5 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `Appends a timestamped log to the mistakes file.`, `Logs a successful tool usage to the Learned_Skills file.`, `Reads and returns the last 5 mistakes from the file as a single string.` to the rest of the system?",
+      "why": "13 weakly-connected nodes found - possible documentation gaps or missing edges."
+    }
+  ]
+}

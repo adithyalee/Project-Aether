@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>graphify - graphify-out/graph.html</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #graph { flex: 1; }
+  #sidebar { width: 280px; background: #1a1a2e; border-left: 1px solid #2a2a4e; display: flex; flex-direction: column; overflow: hidden; }
+  #search-wrap { padding: 12px; border-bottom: 1px solid #2a2a4e; }
+  #search { width: 100%; background: #0f0f1a; border: 1px solid #3a3a5e; color: #e0e0e0; padding: 7px 10px; border-radius: 6px; font-size: 13px; outline: none; }
+  #search:focus { border-color: #4E79A7; }
+  #search-results { max-height: 140px; overflow-y: auto; padding: 4px 12px; border-bottom: 1px solid #2a2a4e; display: none; }
+  .search-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-item:hover { background: #2a2a4e; }
+  #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; }
+  #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
+  #info-content .field { margin-bottom: 5px; }
+  #info-content .field b { color: #e0e0e0; }
+  #info-content .empty { color: #555; font-style: italic; }
+  .neighbor-link { display: block; padding: 2px 6px; margin: 2px 0; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #333; }
+  .neighbor-link:hover { background: #2a2a4e; }
+  #neighbors-list { max-height: 160px; overflow-y: auto; margin-top: 4px; }
+  #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
+  #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; border-radius: 4px; font-size: 12px; }
+  .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
+  .legend-item.dimmed { opacity: 0.35; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-count { color: #666; font-size: 11px; }
+  #stats { padding: 10px 14px; border-top: 1px solid #2a2a4e; font-size: 11px; color: #555; }
+</style>
+</head>
+<body>
+<div id="graph"></div>
+<div id="sidebar">
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="Search nodes..." autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+  <div id="info-panel">
+    <h3>Node Info</h3>
+    <div id="info-content"><span class="empty">Click a node to inspect it</span></div>
+  </div>
+  <div id="legend-wrap">
+    <h3>Communities</h3>
+    <div id="legend"></div>
+  </div>
+  <div id="stats">41 nodes &middot; 52 edges &middot; 7 communities</div>
+</div>
+<script>
+const RAW_NODES = [{"id": "main_py", "label": "main.py", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "main.py", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 2}, {"id": "main_aetheragent", "label": "AetherAgent", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 40.0, "font": {"size": 12, "color": "#ffffff"}, "title": "AetherAgent", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 11}, {"id": "main_aetheragent_init", "label": ".__init__()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 23.6, "font": {"size": 12, "color": "#ffffff"}, "title": ".__init__()", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 5}, {"id": "main_aetheragent_load_identity", "label": "._load_identity()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "._load_identity()", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 2}, {"id": "main_aetheragent_initialize_system_context", "label": "._initialize_system_context()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "._initialize_system_context()", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 2}, {"id": "main_aetheragent_initialize_greeting", "label": ".initialize_greeting()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 20.9, "font": {"size": 12, "color": "#ffffff"}, "title": ".initialize_greeting()", "community": 4, "community_name": "Interaction & Learning Logic", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 4}, {"id": "main_aetheragent_chat", "label": ".chat()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 20.9, "font": {"size": 12, "color": "#ffffff"}, "title": ".chat()", "community": 4, "community_name": "Interaction & Learning Logic", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 4}, {"id": "main_aetheragent_listen", "label": ".listen()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": ".listen()", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 2}, {"id": "main_aetheragent_speak", "label": ".speak()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": ".speak()", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 3}, {"id": "main_main", "label": "main()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 26.4, "font": {"size": 12, "color": "#ffffff"}, "title": "main()", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 6}, {"id": "main_rationale_49", "label": "Generates the initial personalized greeting.", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "Generates the initial personalized greeting.", "community": 4, "community_name": "Interaction & Learning Logic", "source_file": "D:\\Project Aether\\main.py", "file_type": "rationale", "degree": 2}, {"id": "main_rationale_200", "label": "Placeholder for 'Ears' (STT) module.", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "Placeholder for &#x27;Ears&#x27; (STT) module.", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\main.py", "file_type": "rationale", "degree": 2}, {"id": "main_rationale_205", "label": "Placeholder for 'Voice' (TTS) module.", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "Placeholder for &#x27;Voice&#x27; (TTS) module.", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "rationale", "degree": 2}, {"id": "brain_memory_manager_py", "label": "memory_manager.py", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "memory_manager.py", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "code", "degree": 1}, {"id": "memory_manager_memorymanager", "label": "MemoryManager", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 40.0, "font": {"size": 12, "color": "#ffffff"}, "title": "MemoryManager", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "code", "degree": 11}, {"id": "memory_manager_memorymanager_init", "label": ".__init__()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": ".__init__()", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "code", "degree": 1}, {"id": "memory_manager_memorymanager_log_mistake", "label": ".log_mistake()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": ".log_mistake()", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "code", "degree": 2}, {"id": "memory_manager_memorymanager_log_skill", "label": ".log_skill()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": ".log_skill()", "community": 4, "community_name": "Interaction & Learning Logic", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "code", "degree": 3}, {"id": "memory_manager_memorymanager_get_mistakes", "label": ".get_mistakes()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": ".get_mistakes()", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "code", "degree": 3}, {"id": "memory_manager_rationale_9", "label": "Appends a timestamped log to the mistakes file.", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Appends a timestamped log to the mistakes file.", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "rationale", "degree": 1}, {"id": "memory_manager_rationale_24", "label": "Logs a successful tool usage to the Learned_Skills file.", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Logs a successful tool usage to the Learned_Skills file.", "community": 4, "community_name": "Interaction & Learning Logic", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "rationale", "degree": 1}, {"id": "memory_manager_rationale_39", "label": "Reads and returns the last 5 mistakes from the file as a single string.", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Reads and returns the last 5 mistakes from the file as a single string.", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "rationale", "degree": 1}, {"id": "tools_pc_controls_py", "label": "pc_controls.py", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": "pc_controls.py", "community": 2, "community_name": "System Control Tools", "source_file": "D:\\Project Aether\\tools\\pc_controls.py", "file_type": "code", "degree": 3}, {"id": "pc_controls_log_mistake", "label": "log_mistake()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": "log_mistake()", "community": 2, "community_name": "System Control Tools", "source_file": "D:\\Project Aether\\tools\\pc_controls.py", "file_type": "code", "degree": 3}, {"id": "pc_controls_get_disk_space", "label": "get_disk_space()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": "get_disk_space()", "community": 2, "community_name": "System Control Tools", "source_file": "D:\\Project Aether\\tools\\pc_controls.py", "file_type": "code", "degree": 3}, {"id": "pc_controls_open_url", "label": "open_url()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": "open_url()", "community": 2, "community_name": "System Control Tools", "source_file": "D:\\Project Aether\\tools\\pc_controls.py", "file_type": "code", "degree": 3}, {"id": "pc_controls_rationale_8", "label": "Logs a mistake to the Mistakes.md file to avoid repeating it in the future.", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Logs a mistake to the Mistakes.md file to avoid repeating it in the future.", "community": 2, "community_name": "System Control Tools", "source_file": "D:\\Project Aether\\tools\\pc_controls.py", "file_type": "rationale", "degree": 1}, {"id": "pc_controls_rationale_22", "label": "Returns disk usage information for the C: drive.", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Returns disk usage information for the C: drive.", "community": 2, "community_name": "System Control Tools", "source_file": "D:\\Project Aether\\tools\\pc_controls.py", "file_type": "rationale", "degree": 1}, {"id": "pc_controls_rationale_32", "label": "Opens a specified URL in the default web browser.", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Opens a specified URL in the default web browser.", "community": 2, "community_name": "System Control Tools", "source_file": "D:\\Project Aether\\tools\\pc_controls.py", "file_type": "rationale", "degree": 1}, {"id": "d_project_aether_main_py", "label": "main.py", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "main.py", "community": 1, "community_name": "Agent Core & Initialization", "source_file": "D:\\Project Aether\\main.py", "file_type": "code", "degree": 2}, {"id": "d_project_aether_brain_memory_manager_py", "label": "memory_manager.py", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "memory_manager.py", "community": 0, "community_name": "Memory Management System", "source_file": "D:\\Project Aether\\brain\\memory_manager.py", "file_type": "code", "degree": 1}, {"id": "d_project_aether_tools_pc_controls_py", "label": "pc_controls.py", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": "pc_controls.py", "community": 2, "community_name": "System Control Tools", "source_file": "D:\\Project Aether\\tools\\pc_controls.py", "file_type": "code", "degree": 3}, {"id": "blueprint_vision", "label": "Vision: Self-Evolving Digital Twin", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 20.9, "font": {"size": 12, "color": "#ffffff"}, "title": "Vision: Self-Evolving Digital Twin", "community": 3, "community_name": "Project Roadmap & Vision", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 4}, {"id": "blueprint_phase1", "label": "Phase 1: Foundation", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": "Phase 1: Foundation", "community": 3, "community_name": "Project Roadmap & Vision", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 3}, {"id": "blueprint_phase2", "label": "Phase 2: Browser Eyes", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Phase 2: Browser Eyes", "community": 3, "community_name": "Project Roadmap & Vision", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 1}, {"id": "blueprint_phase3", "label": "Phase 3: Presence", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Phase 3: Presence", "community": 3, "community_name": "Project Roadmap & Vision", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 1}, {"id": "blueprint_phase4", "label": "Phase 4: Full Autonomy", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Phase 4: Full Autonomy", "community": 3, "community_name": "Project Roadmap & Vision", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 1}, {"id": "tech_ollama", "label": "Ollama (Cognition)", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Ollama (Cognition)", "community": 3, "community_name": "Project Roadmap & Vision", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 1}, {"id": "tech_playwright", "label": "Playwright (Automation)", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "Playwright (Automation)", "community": 5, "community_name": "Automation Stack", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 0}, {"id": "tech_obsidian", "label": "Obsidian (Memory)", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Obsidian (Memory)", "community": 3, "community_name": "Project Roadmap & Vision", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 1}, {"id": "tech_whisper", "label": "Whisper (Voice)", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "Whisper (Voice)", "community": 6, "community_name": "Voice Interface", "source_file": "PROJECT_AETHER_BLUEPRINT.md", "file_type": "document", "degree": 0}];
+const RAW_EDGES = [{"from": "main_py", "to": "main_aetheragent", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_py", "to": "main_main", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "main_aetheragent_init", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "main_aetheragent_load_identity", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "main_aetheragent_initialize_system_context", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "main_aetheragent_initialize_greeting", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "main_aetheragent_chat", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "main_aetheragent_listen", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "main_aetheragent_speak", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "main_main", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent", "to": "memory_manager_memorymanager", "label": "uses", "title": "uses [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "main_aetheragent", "to": "d_project_aether_main_py", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_init", "to": "main_aetheragent_load_identity", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_init", "to": "main_aetheragent_initialize_system_context", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_init", "to": "memory_manager_memorymanager", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "main_aetheragent_init", "to": "memory_manager_memorymanager_get_mistakes", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "main_aetheragent_initialize_greeting", "to": "main_aetheragent_chat", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_initialize_greeting", "to": "main_main", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_initialize_greeting", "to": "main_rationale_49", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_chat", "to": "main_main", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_chat", "to": "memory_manager_memorymanager_log_skill", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "main_aetheragent_listen", "to": "main_rationale_200", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_speak", "to": "main_main", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_aetheragent_speak", "to": "main_rationale_205", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_main", "to": "d_project_aether_main_py", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "main_rationale_49", "to": "memory_manager_memorymanager", "label": "uses", "title": "uses [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "main_rationale_200", "to": "memory_manager_memorymanager", "label": "uses", "title": "uses [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "main_rationale_205", "to": "memory_manager_memorymanager", "label": "uses", "title": "uses [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "brain_memory_manager_py", "to": "memory_manager_memorymanager", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "memory_manager_memorymanager", "to": "memory_manager_memorymanager_init", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "memory_manager_memorymanager", "to": "memory_manager_memorymanager_log_mistake", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "memory_manager_memorymanager", "to": "memory_manager_memorymanager_log_skill", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "memory_manager_memorymanager", "to": "memory_manager_memorymanager_get_mistakes", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "memory_manager_memorymanager", "to": "d_project_aether_brain_memory_manager_py", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "memory_manager_memorymanager_log_mistake", "to": "memory_manager_rationale_9", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "memory_manager_memorymanager_log_skill", "to": "memory_manager_rationale_24", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "memory_manager_memorymanager_get_mistakes", "to": "memory_manager_rationale_39", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "tools_pc_controls_py", "to": "pc_controls_log_mistake", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "tools_pc_controls_py", "to": "pc_controls_get_disk_space", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "tools_pc_controls_py", "to": "pc_controls_open_url", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "pc_controls_log_mistake", "to": "pc_controls_rationale_8", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "pc_controls_log_mistake", "to": "d_project_aether_tools_pc_controls_py", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "pc_controls_get_disk_space", "to": "pc_controls_rationale_22", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "pc_controls_get_disk_space", "to": "d_project_aether_tools_pc_controls_py", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "pc_controls_open_url", "to": "pc_controls_rationale_32", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "pc_controls_open_url", "to": "d_project_aether_tools_pc_controls_py", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "blueprint_vision", "to": "blueprint_phase1", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "blueprint_vision", "to": "blueprint_phase2", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "blueprint_vision", "to": "blueprint_phase3", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "blueprint_vision", "to": "blueprint_phase4", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "blueprint_phase1", "to": "tech_ollama", "label": "conceptually_related_to", "title": "conceptually_related_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "blueprint_phase1", "to": "tech_obsidian", "label": "conceptually_related_to", "title": "conceptually_related_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}];
+const LEGEND = [{"cid": 0, "color": "#4E79A7", "label": "Memory Management System", "count": 10}, {"cid": 1, "color": "#F28E2B", "label": "Agent Core &amp; Initialization", "count": 9}, {"cid": 2, "color": "#E15759", "label": "System Control Tools", "count": 8}, {"cid": 3, "color": "#76B7B2", "label": "Project Roadmap &amp; Vision", "count": 7}, {"cid": 4, "color": "#59A14F", "label": "Interaction &amp; Learning Logic", "count": 5}, {"cid": 5, "color": "#EDC948", "label": "Automation Stack", "count": 1}, {"cid": 6, "color": "#B07AA1", "label": "Voice Interface", "count": 1}];
+
+// HTML-escape helper — prevents XSS when injecting graph data into innerHTML
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Build vis datasets
+const nodesDS = new vis.DataSet(RAW_NODES.map(n => ({
+  id: n.id, label: n.label, color: n.color, size: n.size,
+  font: n.font, title: n.title,
+  _community: n.community, _community_name: n.community_name,
+  _source_file: n.source_file, _file_type: n.file_type, _degree: n.degree,
+})));
+
+const edgesDS = new vis.DataSet(RAW_EDGES.map((e, i) => ({
+  id: i, from: e.from, to: e.to,
+  label: '',
+  title: e.title,
+  dashes: e.dashes,
+  width: e.width,
+  color: e.color,
+  arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+})));
+
+const container = document.getElementById('graph');
+const network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -60,
+      centralGravity: 0.005,
+      springLength: 120,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 0.8,
+    },
+    stabilization: { iterations: 200, fit: true },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 100,
+    hideEdgesOnDrag: true,
+    navigationButtons: false,
+    keyboard: false,
+  },
+  nodes: { shape: 'dot', borderWidth: 1.5 },
+  edges: { smooth: { type: 'continuous', roundness: 0.2 }, selectionWidth: 3 },
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: { enabled: false } });
+});
+
+function showInfo(nodeId) {
+  const n = nodesDS.get(nodeId);
+  if (!n) return;
+  const neighborIds = network.getConnectedNodes(nodeId);
+  const neighborItems = neighborIds.map(nid => {
+    const nb = nodesDS.get(nid);
+    const color = nb ? nb.color.background : '#555';
+    return `<span class="neighbor-link" style="border-left-color:${esc(color)}" onclick="focusNode(${JSON.stringify(nid)})">${esc(nb ? nb.label : nid)}</span>`;
+  }).join('');
+  document.getElementById('info-content').innerHTML = `
+    <div class="field"><b>${esc(n.label)}</b></div>
+    <div class="field">Type: ${esc(n._file_type || 'unknown')}</div>
+    <div class="field">Community: ${esc(n._community_name)}</div>
+    <div class="field">Source: ${esc(n._source_file || '-')}</div>
+    <div class="field">Degree: ${n._degree}</div>
+    ${neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${neighborIds.length})</div><div id="neighbors-list">${neighborItems}</div>` : ''}
+  `;
+}
+
+function focusNode(nodeId) {
+  network.focus(nodeId, { scale: 1.4, animation: true });
+  network.selectNodes([nodeId]);
+  showInfo(nodeId);
+}
+
+// Track hovered node — hover detection is more reliable than click params
+let hoveredNodeId = null;
+network.on('hoverNode', params => {
+  hoveredNodeId = params.node;
+  container.style.cursor = 'pointer';
+});
+network.on('blurNode', () => {
+  hoveredNodeId = null;
+  container.style.cursor = 'default';
+});
+container.addEventListener('click', () => {
+  if (hoveredNodeId !== null) {
+    showInfo(hoveredNodeId);
+    network.selectNodes([hoveredNodeId]);
+  }
+});
+network.on('click', params => {
+  if (params.nodes.length > 0) {
+    showInfo(params.nodes[0]);
+  } else if (hoveredNodeId === null) {
+    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node to inspect it</span>';
+  }
+});
+
+const searchInput = document.getElementById('search');
+const searchResults = document.getElementById('search-results');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  searchResults.innerHTML = '';
+  if (!q) { searchResults.style.display = 'none'; return; }
+  const matches = RAW_NODES.filter(n => n.label.toLowerCase().includes(q)).slice(0, 20);
+  if (!matches.length) { searchResults.style.display = 'none'; return; }
+  searchResults.style.display = 'block';
+  matches.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'search-item';
+    el.textContent = n.label;
+    el.style.borderLeft = `3px solid ${n.color.background}`;
+    el.style.paddingLeft = '8px';
+    el.onclick = () => {
+      network.focus(n.id, { scale: 1.5, animation: true });
+      network.selectNodes([n.id]);
+      showInfo(n.id);
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    };
+    searchResults.appendChild(el);
+  });
+});
+document.addEventListener('click', e => {
+  if (!searchResults.contains(e.target) && e.target !== searchInput)
+    searchResults.style.display = 'none';
+});
+
+const hiddenCommunities = new Set();
+const legendEl = document.getElementById('legend');
+LEGEND.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div>
+    <span class="legend-label">${c.label}</span>
+    <span class="legend-count">${c.count}</span>`;
+  item.onclick = () => {
+    if (hiddenCommunities.has(c.cid)) {
+      hiddenCommunities.delete(c.cid);
+      item.classList.remove('dimmed');
+    } else {
+      hiddenCommunities.add(c.cid);
+      item.classList.add('dimmed');
+    }
+    const updates = RAW_NODES
+      .filter(n => n.community === c.cid)
+      .map(n => ({ id: n.id, hidden: hiddenCommunities.has(c.cid) }));
+    nodesDS.update(updates);
+  };
+  legendEl.appendChild(item);
+});
+</script>
+<script>
+// Render hyperedges as shaded regions
+const hyperedges = [];
+// afterDrawing passes ctx already transformed to network coordinate space.
+// Draw node positions raw — no manual pan/zoom/DPR math needed.
+network.on('afterDrawing', function(ctx) {
+    hyperedges.forEach(h => {
+        const positions = h.nodes
+            .map(nid => network.getPositions([nid])[nid])
+            .filter(p => p !== undefined);
+        if (positions.length < 2) return;
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = '#6366f1';
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Centroid and expanded hull in network coordinates
+        const cx = positions.reduce((s, p) => s + p.x, 0) / positions.length;
+        const cy = positions.reduce((s, p) => s + p.y, 0) / positions.length;
+        const expanded = positions.map(p => ({
+            x: cx + (p.x - cx) * 1.15,
+            y: cy + (p.y - cy) * 1.15
+        }));
+        ctx.moveTo(expanded[0].x, expanded[0].y);
+        expanded.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        // Label
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#4f46e5';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(h.label, cx, cy - 5);
+        ctx.restore();
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+    async def chat(self, user_input: str):
+        # ── Step 0: Robust Intercepts (Always win over cache/LLM) ──
+        clean_input = user_input.lower().strip()
+        
+        # 'Open' command
+        if clean_input.startswith("open"):
+            target = clean_input.replace("open", "", 1).strip()
+            primary_target = re.split(r' (and|then|please|to|for|play|music|in|on) ', target)[0].strip()
+            res = await self._open_with_resolution(primary_target)
+            print(f"\nAether: {res}\n")
+            topic = await self._get_core_topic(user_input, res)
+            await self.memory.log_interaction(user_input, res, topic)
+            return
+
+        # 'Play' command (Instant YouTube Music)
+        if clean_input.startswith("play"):
+            song = clean_input.replace("play", "", 1).strip()
+            print(f"\nAether: Searching for '{song}' on YouTube...\n")
+            try:
+                from tools.pc_controls import get_direct_youtube_link
+                import webbrowser
+                link = get_direct_youtube_link(song)
+                if link:
+                    webbrowser.open(link)
+                    res = f"Playing '{song}' for you now, Adithya."
+                    print(f"Aether: {res}\n")
+                    await self.memory.log_interaction(user_input, res, "Music")
+                    return
+            except Exception as e:
+                print(f"[Aether/Play] Error: {e}")
+            print("Aether: I couldn't find that song on YouTube.\n")
+            return
+
+        # ── Step 1: Semantic Cache Check ──
+        cached = await check_cache(user_input)
+        if cached:
+            print(f"\nAether (Cache): {cached}\n")
+            topic = await self._get_core_topic(user_input, cached)
+            await self.memory.log_interaction(user_input, cached, topic)
+            return
+
+        # ── Step 2: Parallel RAG Search ──
+        topic_hint = self.memory._detect_topic(user_input)
+        rag_task = asyncio.create_task(query(user_input, topic_filter=topic_hint if topic_hint != "General" else None))
+        
+        rag_hits = await rag_task
+        ctx = "\n\n".join([f"[Context]: {h['text']}" for h in rag_hits])
+        prompt = f"USER QUESTION: {user_input}\n\n[RAG MEMORY]:\n{ctx}" if ctx else user_input
+        
+        self.session_messages.append({'role': 'user', 'content': prompt})
+        print("\nAether: ", end="", flush=True)
+        full_res = ""
+        client = ollama.AsyncClient()
+        async for part in await client.chat(model=self.model, messages=self.session_messages, stream=True):
+            token = part['message']['content']
+            print(token, end="", flush=True)
+            full_res += token
+        print("\n")
+
+        self.session_messages.append({'role': 'assistant', 'content': full_res})
+        topic = await self._get_core_topic(user_input, full_res)
+        await asyncio.gather(
+            self.memory.log_interaction(user_input, full_res, topic), 
+            add_to_cache(user_input, full_res)
+        )
