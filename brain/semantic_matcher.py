@@ -1,25 +1,10 @@
 """
 brain/semantic_matcher.py
 Lightweight semantic similarity engine for Aether.
-Uses all-MiniLM-L6-v2 (22MB) to match user intent to known skills.
+Uses the shared all-MiniLM-L6-v2 singleton from brain.embeddings.
 """
 from __future__ import annotations
-
-_model = None  # Lazy-loaded singleton
-
-def _get_model():
-    """Lazy-load the sentence transformer model to avoid slow startup."""
-    global _model
-    if _model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            print("[Aether/Brain] Loading semantic model...", flush=True)
-            _model = SentenceTransformer("all-MiniLM-L6-v2")
-            print("[Aether/Brain] Semantic model ready.", flush=True)
-        except ImportError:
-            print("[Aether/Brain] sentence-transformers not installed. Semantic matching disabled.")
-            _model = "UNAVAILABLE"
-    return _model if _model != "UNAVAILABLE" else None
+from brain.embeddings import get_model
 
 
 def find_best_skill(query: str, skills: dict, threshold: float = 0.45) -> tuple[str | None, str | None, float]:
@@ -34,7 +19,7 @@ def find_best_skill(query: str, skills: dict, threshold: float = 0.45) -> tuple[
     Returns:
         (best_name, best_url, score) — or (None, None, 0.0) if no match found
     """
-    model = _get_model()
+    model = get_model()
     if model is None or not skills:
         return None, None, 0.0
 

@@ -1,0 +1,17 @@
+# Secrets — never commit these
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Models & indexes (large files)
+.txtai/
+.chroma_db/
+.mem0_history.db
+graphify-out/cache/
+
+# Temp
+.graphify_python
+*.graphify_detect.json

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:localaimaster.com)",
+      "Bash(pip install *)",
+      "Bash(ollama pull *)",
+      "Bash(pip show *)",
+      "Bash(python -c ' *)",
+      "Bash(ollama list *)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)",
+      "Bash(python -c \"import mem0; print\\('mem0 OK'\\)\")",
+      "Bash(python memory_cli.py add \"I am Adithya Thaninki \\(Adi\\). Junior developer at Carleton University Canada. Previously at VELTECH University, TCS, Statistics Canada. Focused on Python, AI, data engineering. GitHub: kartik-mem0. Windows 11, Intel Iris Xe GPU, 16GB RAM.\")",
+      "Bash(python memory_cli.py add \"I am Adithya Thaninki \\(Adi\\). Junior developer at Carleton University Canada. Previously VELTECH University, TCS, Statistics Canada. Python, AI, data engineering focus. GitHub: kartik-mem0. Windows 11, Intel Iris Xe, 16GB RAM.\")",
+      "Bash(python memory_cli.py add \"I am Adithya Thaninki \\(Adi\\). Junior developer at Carleton University Canada. Previously VELTECH University, TCS, Statistics Canada. Python AI data engineering focus. GitHub: kartik-mem0. Windows 11 Intel Iris Xe 16GB RAM.\")",
+      "Bash(python memory_cli.py add \"Project Aether is a Python AI voice assistant. Stack: Google Gemini 2.0 Flash, mem0, ChromaDB, faster-whisper small model, Kokoro TTS, DuckDuckGo search, Ollama phi4-mini fallback. Obsidian vault at E:\\\\\\\\Aether_Vault for skills and logs.\")",
+      "Bash(python memory_cli.py add \"In this session: fixed voice stop command, added instant greeting handler, fixed do-it-again with last_action tracking, integrated mem0 for memory, added Gemini 2.0 Flash as LLM with Ollama fallback, added DuckDuckGo web search tool, created memory_cli.py for cross-AI memory, fixed Whisper HF_HUB_OFFLINE issue, switched to Whisper small model with beam_size 3.\")",
+      "Bash(python memory_cli.py add \"Building Project Aether - Python AI voice assistant. Stack: Gemini 2.0 Flash, mem0 with Ollama phi4-mini, ChromaDB, faster-whisper small, Kokoro TTS, DuckDuckGo search. Obsidian vault at E:\\\\\\\\Aether_Vault for skills and logs.\")",
+      "Bash(Select-String -NotMatch \"Warning|weights|FutureWarning|spaCy\")"
+    ]
+  }
+}

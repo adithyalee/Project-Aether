@@ -1,23 +1,22 @@
 """
-brain/rag_engine.py — ASYNC Masterpiece Edition
+brain/rag_engine.py — TXTAI Turbo Edition
 """
 import os
 import hashlib
 import re
 import asyncio
 from pathlib import Path
+from txtai.embeddings import Embeddings
 
 # Suppress HuggingFace noise
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-_collection = None
-_cache_collection = None
-_chroma_client = None
-_embed_fn = None
+_vault_index = None
+_cache_index = None
 
 VAULT_BASE = r"E:\Aether_Vault\Aether_Vault\_Aether"
-CHROMA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".chroma_db")
+INDEX_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".txtai")
 
 INDEX_FILES = [
     "Identity.md", "Welcome.md", "Learned_Skills.md", 
@@ -25,22 +24,25 @@ INDEX_FILES = [
     "Weekly_Insights.md"
 ]
 
-def _get_embed_fn():
-    global _embed_fn
-    if _embed_fn: return _embed_fn
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-    _embed_fn = lambda texts: model.encode(texts, show_progress_bar=False).tolist()
-    return _embed_fn
-
-def _init_collections():
-    global _collection, _cache_collection, _chroma_client
-    if _collection and _cache_collection: return _collection, _cache_collection
-    import chromadb
-    _chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
-    _collection = _chroma_client.get_or_create_collection("aether_vault", metadata={"hnsw:space": "cosine"})
-    _cache_collection = _chroma_client.get_or_create_collection("semantic_cache", metadata={"hnsw:space": "cosine"})
-    return _collection, _cache_collection
+def _init_indexes():
+    global _vault_index, _cache_index
+    if _vault_index and _cache_index: return _vault_index, _cache_index
+    
+    # Initialize vault index
+    v_path = os.path.join(INDEX_DIR, "vault")
+    os.makedirs(v_path, exist_ok=True)
+    _vault_index = Embeddings({"path": "sentence-transformers/all-MiniLM-L6-v2", "content": True})
+    if os.path.exists(os.path.join(v_path, "config")):
+        _vault_index.load(v_path)
+    
+    # Initialize semantic cache index
+    c_path = os.path.join(INDEX_DIR, "cache")
+    os.makedirs(c_path, exist_ok=True)
+    _cache_index = Embeddings({"path": "sentence-transformers/all-MiniLM-L6-v2", "content": True})
+    if os.path.exists(os.path.join(c_path, "config")):
+        _cache_index.load(c_path)
+        
+    return _vault_index, _cache_index
 
 def _chunk_text(text: str, source: str) -> list[dict]:
     paras = re.split(r'\n{2,}', text.strip())
@@ -48,94 +50,91 @@ def _chunk_text(text: str, source: str) -> list[dict]:
     curr = ""
     for p in paras:
         if len(curr) + len(p) > 300 and curr:
-            chunks.append({"text": curr.strip(), "source": source, "hash": hashlib.md5(curr.encode()).hexdigest()})
+            chunks.append({"text": curr.strip(), "source": source, "id": hashlib.md5(curr.encode()).hexdigest()})
             curr = p
         else: curr = curr + "\n\n" + p if curr else p
-    if curr.strip(): chunks.append({"text": curr.strip(), "source": source, "hash": hashlib.md5(curr.encode()).hexdigest()})
+    if curr.strip(): chunks.append({"text": curr.strip(), "source": source, "id": hashlib.md5(curr.encode()).hexdigest()})
     return chunks
 
 async def index_vault():
-    col, _ = _init_collections()
-    embed = _get_embed_fn()
-    total = 0
+    vault, _ = _init_indexes()
+    data = []
     for fname in INDEX_FILES:
         fpath = os.path.join(VAULT_BASE, fname)
         if not os.path.exists(fpath): continue
         text = Path(fpath).read_text(encoding="utf-8", errors="replace")
         chunks = _chunk_text(text, fname)
-        if not chunks: continue
-        
-        topic = "System" if "Mistakes" in fname else "General"
-        if "Identity" in fname: topic = "Personal"
-        
-        col.upsert(
-            ids=[c["hash"] for c in chunks],
-            embeddings=embed([c["text"] for c in chunks]),
-            documents=[c["text"] for c in chunks],
-            metadatas=[{"source": c["source"], "topic": topic} for c in chunks]
-        )
-        total += len(chunks)
-    print(f"[Aether/RAG] Async Indexing complete: {total} chunks.")
-    return total
+        for c in chunks:
+            topic = "System" if "Mistakes" in fname else "General"
+            if "Identity" in fname: topic = "Personal"
+            # Format for txtai: (id, data, metadata)
+            data.append((c["id"], {"text": c["text"], "source": c["source"], "topic": topic}, None))
+            
+    if data:
+        await asyncio.to_thread(vault.index, data)
+        await asyncio.to_thread(vault.save, os.path.join(INDEX_DIR, "vault"))
+    print(f"[Aether/RAG] txtai Indexing complete: {len(data)} chunks.")
+    return len(data)
 
 async def upsert_text(text: str, source: str, metadata: dict = None):
-    col, _ = _init_collections()
-    embed = _get_embed_fn()
+    vault, _ = _init_indexes()
     chunks = _chunk_text(text, source)
     if not chunks: return
     
-    metas = []
+    data = []
     for c in chunks:
-        m = {"source": c["source"]}
+        m = {"text": c["text"], "source": c["source"], "topic": "General"}
         if metadata: m.update(metadata)
-        metas.append(m)
-    col.upsert(
-        ids=[c["hash"] for c in chunks],
-        embeddings=embed([c["text"] for c in chunks]),
-        documents=[c["text"] for c in chunks],
-        metadatas=metas
-    )
+        data.append((c["id"], m, None))
+        
+    await asyncio.to_thread(vault.upsert, data)
+    await asyncio.to_thread(vault.save, os.path.join(INDEX_DIR, "vault"))
 
 async def query(question: str, n_results: int = 3, topic_filter: str = None) -> list[dict]:
-    """Hierarchical Async Search: Insights first, then Raw Data."""
-    col, _ = _init_collections()
-    embed = _get_embed_fn()
-    q_emb = embed([question])
-
-    # 1. Search Weekly_Insights first for high-level context
-    try:
-        insight_hits = col.query(query_embeddings=q_emb, n_results=1, where={"source": "Weekly_Insights.md"})
-    except: insight_hits = {"documents": [[]]}
+    vault, _ = _init_indexes()
     
-    # 2. General search with filter
-    where = {"topic": topic_filter} if topic_filter else None
-    results = col.query(query_embeddings=q_emb, n_results=n_results, where=where)
+    # Build SQL-like query for txtai if filter is present
+    search_query = question
+    if topic_filter:
+        # txtai supports filtering if we enable it, but for simplicity we'll filter results post-search
+        pass
 
+    results = await asyncio.to_thread(vault.search, question, n_results + 2)
+    
     hits = []
-    # Add insight if strong match
-    if insight_hits["documents"][0] and insight_hits["distances"][0][0] < 0.4:
-        hits.append({"text": insight_hits["documents"][0][0], "source": "Weekly_Insights.md", "topic": "Summary"})
-    
-    for i in range(len(results["documents"][0])):
+    for r in results:
+        # r is {'id': ..., 'text': ..., 'score': ..., 'source': ..., 'topic': ...} 
+        # but wait, txtai returns results differently depending on config.
+        # With content=True, it returns dicts.
+        if topic_filter and r.get("topic") != topic_filter:
+            continue
         hits.append({
-            "text": results["documents"][0][i],
-            "source": results["metadatas"][0][i].get("source", "?"),
-            "topic": results["metadatas"][0][i].get("topic", "General")
+            "text": r["text"],
+            "source": r.get("source", "?"),
+            "topic": r.get("topic", "General")
         })
-    return hits
+    return hits[:n_results]
 
-async def check_cache(question: str, threshold: float = 0.1) -> str | None:
-    _, cache = _init_collections()
-    res = cache.query(query_embeddings=_get_embed_fn()([question]), n_results=1)
-    if res["documents"][0] and res["distances"][0][0] < threshold:
-        return res["documents"][0][0]
+async def check_cache(question: str, threshold: float = 0.85) -> str | None:
+    # txtai score is cosine similarity (1.0 is exact match)
+    _, cache = _init_indexes()
+    res = await asyncio.to_thread(cache.search, question, 1)
+    if res and res[0]["score"] > threshold:
+        return res[0]["text"]
     return None
 
 async def add_to_cache(question: str, answer: str):
-    _, cache = _init_collections()
-    cache.upsert(
-        ids=[hashlib.md5(question.encode()).hexdigest()],
-        embeddings=_get_embed_fn()([question]),
-        documents=[answer],
-        metadatas=[{"question": question}]
-    )
+    _, cache = _init_indexes()
+    uid = hashlib.md5(question.encode()).hexdigest()
+    await asyncio.to_thread(cache.upsert, [(uid, {"text": answer, "question": question}, None)])
+    await asyncio.to_thread(cache.save, os.path.join(INDEX_DIR, "cache"))
+
+async def clear_cache():
+    global _cache_index
+    c_path = os.path.join(INDEX_DIR, "cache")
+    if os.path.exists(c_path):
+        import shutil
+        shutil.rmtree(c_path)
+    _cache_index = None
+    _init_indexes()
+    print("[Aether/Cache] txtai cache cleared.")

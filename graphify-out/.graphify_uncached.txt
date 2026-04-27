@@ -1,0 +1,3 @@
+D:\Project Aether\ollama_logs.txt
+D:\Project Aether\ollama_logs_vulkan.txt
+D:\Project Aether\PROJECT_AETHER_BLUEPRINT.md
