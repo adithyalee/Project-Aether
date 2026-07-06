@@ -1,21 +1,19 @@
 # Secrets — never commit these
 .env
+.claude/
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 
-# Models & indexes (large files — download separately, do not commit)
-*.onnx
-*.bin
-*.pkl
-*.pt
-*.pth
+# Models & indexes (large files)
 .txtai/
 .chroma_db/
 .mem0_history.db
 graphify-out/cache/
+tts/*.onnx
+tts/*.bin
 
 # Temp
 .graphify_python

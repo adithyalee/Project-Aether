@@ -27,11 +27,27 @@ os.environ.setdefault("OLLAMA_INTEL_GPU", "1")
 os.environ.setdefault("OLLAMA_VULKAN", "1")
 os.environ.setdefault("OLLAMA_HOST", "http://localhost:11434")
 
-import ollama
+try:
+    import ollama
+except ImportError:
+    ollama = None
+
 from brain.memory_manager import MemoryManager, VAULT_BASE
 from tools.pc_controls import TOOL_MAP
 from brain.semantic_matcher import find_best_skill
-from brain.rag_engine import check_cache, query, add_to_cache, index_vault, clear_cache
+
+# RAG is optional — on low-end hardware without txtai, run without semantic cache
+try:
+    from brain.rag_engine import check_cache, query, add_to_cache, index_vault, clear_cache
+    RAG_OK = True
+except Exception as _e:
+    print(f"[RAG] Disabled ({_e.__class__.__name__}) — running without semantic cache.")
+    RAG_OK = False
+    async def check_cache(question, **kw): return None
+    async def query(question, **kw): return []
+    async def add_to_cache(question, answer): pass
+    async def index_vault(): return 0
+    async def clear_cache(): pass
 
 IDENTITY_FILE  = os.path.join(VAULT_BASE, "Identity.md")
 WINDOW_SIZE    = 15
@@ -276,7 +292,10 @@ class AetherAgent:
 
         # All keys exhausted or errored — use local Ollama
         print("[LLM] Using Ollama (offline fallback)")
-        return await self._call_ollama(user_prompt)
+        try:
+            return await self._call_ollama(user_prompt)
+        except Exception as e:
+            return f"LLM unavailable ({e.__class__.__name__}) — check .env Gemini keys or start Ollama."
 
     def _next_gemini_key(self) -> str | None:
         global _gemini_key_index
@@ -348,6 +367,8 @@ class AetherAgent:
         return full_text.strip()
 
     async def _call_ollama(self, user_prompt: str) -> str:
+        if ollama is None:
+            return "No LLM available — add a Gemini key to .env or install Ollama."
         options = {
             "num_ctx":    512 if len(user_prompt.split()) <= 6 else 1024,
             "num_thread": 4,
@@ -485,6 +506,20 @@ class AetherAgent:
             await self._reply("Identity reloaded.", t_start)
             return
 
+        # ── Teach mode: "teach spotify = open.spotify.com" ────────────────
+        if clean.startswith("teach "):
+            body = user_input[6:]
+            if "=" in body:
+                name, target = (s.strip() for s in body.split("=", 1))
+                if target and not target.startswith("http") and "." in target:
+                    target = "https://" + target
+                if name and target:
+                    await self.memory.save_new_skill(name, target)
+                    await self._reply(f"Learned: say 'open {name}' and I'll open {target}.", t_start)
+                    return
+            await self._reply("Teach me like this: teach spotify = open.spotify.com", t_start)
+            return
+
         # ── Instant greetings (no LLM) ────────────────────────────────────
         if route == "greeting" or (
             any(p in clean for p in _GREETING_PATTERNS) and len(clean.split()) < 5
@@ -545,6 +580,23 @@ class AetherAgent:
         asyncio.create_task(self._background_log(user_input, full_res))
         self._perf_print(t_start)
 
+    # ── Proactive startup greeting (blueprint Phase 3) ──────────────────────────
+    def startup_greeting(self) -> str:
+        import datetime
+        hour = datetime.datetime.now().hour
+        part = "morning" if hour < 12 else "afternoon" if hour < 18 else "evening"
+        greet = f"Good {part}, Adi."
+        try:
+            lines = Path(self.memory.memory_log_path).read_text(
+                encoding="utf-8", errors="replace"
+            ).strip().splitlines()
+            last = next((l for l in reversed(lines) if l.startswith("### ")), None)
+            if last:
+                greet += f" Last session: {last[4:].strip()}."
+        except (FileNotFoundError, OSError):
+            pass
+        return greet
+
     # ── Voice loop ─────────────────────────────────────────────────────────────
     async def start_voice_loop(self):
         try:
@@ -566,18 +618,18 @@ class AetherAgent:
                 print(f"You (Voice): {voice_text}")
                 _vt = voice_text.lower().strip().rstrip(".,!?")
                 if any(x in _vt for x in ["done", "stop", "exit voice", "goodbye"]):
-                    print("\nAether: Voice loop ended.\n")
+                    print("\nAether: Voice loop ended — back to text.\n")
                     if self._tts:
                         await asyncio.to_thread(self._tts.speak, "Goodbye Adi.")
-                    # Auto-sync memory to all local IDEs
-                    print("[Memory] Syncing to Cursor / Antigravity / Obsidian...")
-                    await asyncio.to_thread(lambda: os.system("python memory_cli.py sync"))
                     break
 
                 await self.chat(voice_text)
 
         except Exception as e:
-            print(f"[Voice] Error: {e}")
+            print(f"[Voice] Unavailable ({e}) — staying in text mode. "
+                  "Install voice deps: pip install faster-whisper sounddevice kokoro-onnx")
+        finally:
+            self.voice_mode = False
 
     def _perf_print(self, t_start: float):
         print(f"[Perf] {time.perf_counter() - t_start:.2f}s | GPU: {_gpu_active()}\n")
@@ -588,13 +640,35 @@ async def main():
     agent = AetherAgent()
     await agent.initialize()
 
-    idx_path = os.path.join(os.path.dirname(__file__), ".txtai", "vault")
-    if not os.path.exists(idx_path):
-        print("[RAG] Initializing index...")
-        await index_vault()
+    if RAG_OK:
+        idx_path = os.path.join(os.path.dirname(__file__), ".txtai", "vault")
+        if not os.path.exists(idx_path):
+            print("[RAG] Initializing index...")
+            await index_vault()
 
-    print("\nAether: Aether active. Listening, Adi.\n")
-    await agent.start_voice_loop()
+    print(f"\nAether: {agent.startup_greeting()}")
+    print("(type to chat | 'voice mode on' for voice | 'exit' to quit)\n")
+
+    if "--voice" in sys.argv:
+        await agent.start_voice_loop()
+
+    # Text REPL — works on any hardware, no mic needed
+    while True:
+        try:
+            user = await asyncio.to_thread(input, "You: ")
+        except (EOFError, KeyboardInterrupt):
+            user = "exit"
+        user = user.lstrip("﻿\xef\xbb\xbf").strip()  # piped stdin may carry a BOM (raw or decoded)
+        if not user:
+            continue
+        if user.lower().rstrip(".!?") in {"exit", "quit", "shutdown"}:
+            print("\nAether: Goodbye, Adi. Syncing memory...")
+            await asyncio.to_thread(lambda: os.system("python memory_cli.py sync"))
+            break
+        if user.lower() in {"voice mode on", "enable voice", "start listening"}:
+            await agent.start_voice_loop()
+            continue
+        await agent.chat(user)
 
 
 if __name__ == "__main__":

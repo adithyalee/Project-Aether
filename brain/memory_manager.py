@@ -23,6 +23,7 @@ VAULT_BASE = os.environ.get("VAULT_BASE", str(Path(__file__).parent.parent / "va
 class MemoryManager:
 
     def __init__(self):
+        os.makedirs(VAULT_BASE, exist_ok=True)
         self.mistakes_path       = os.path.join(VAULT_BASE, "Mistakes.md")
         self.learned_skills_path = os.path.join(VAULT_BASE, "Learned_Skills.md")
         self.predefined_skills_path = os.path.join(VAULT_BASE, "Predefined_Skills.md")
@@ -99,10 +100,12 @@ class MemoryManager:
             m = self._get_mem0()
             if m is None:
                 return []
-            return m.search(query, user_id=user_id, limit=5)
+            return m.search(query, filters={"user_id": user_id}, limit=5)
 
         try:
             results = await asyncio.to_thread(_search)
+            if isinstance(results, dict):
+                results = results.get("results", [])
             if not results:
                 return ""
             return "\n".join(f"- {r.get('memory', r)}" if isinstance(r, dict) else f"- {r}" for r in results)

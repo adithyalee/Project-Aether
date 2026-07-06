@@ -14,8 +14,12 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 _vault_index = None
 _cache_index = None
+_cache_lock = asyncio.Lock()   # txtai save() is not concurrency-safe
 
-VAULT_BASE = r"E:\Aether_Vault\Aether_Vault\_Aether"
+VAULT_BASE = os.environ.get(
+    "VAULT_BASE",
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "vault"),
+)
 INDEX_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".txtai")
 
 INDEX_FILES = [
@@ -126,8 +130,9 @@ async def check_cache(question: str, threshold: float = 0.85) -> str | None:
 async def add_to_cache(question: str, answer: str):
     _, cache = _init_indexes()
     uid = hashlib.md5(question.encode()).hexdigest()
-    await asyncio.to_thread(cache.upsert, [(uid, {"text": answer, "question": question}, None)])
-    await asyncio.to_thread(cache.save, os.path.join(INDEX_DIR, "cache"))
+    async with _cache_lock:
+        await asyncio.to_thread(cache.upsert, [(uid, {"text": answer, "question": question}, None)])
+        await asyncio.to_thread(cache.save, os.path.join(INDEX_DIR, "cache"))
 
 async def clear_cache():
     global _cache_index

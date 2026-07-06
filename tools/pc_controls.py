@@ -7,9 +7,11 @@ import glob
 # Helper to log mistakes (can be imported from memory_manager or defined here)
 def log_mistake(mistake_text):
     """Logs a mistake to the Mistakes.md file to avoid repeating it in the future."""
-    # Importing here to avoid circular dependency if needed, 
-    # but we can just implement the write logic here for the tool.
-    mistakes_path = r"E:\Aether_Vault\Aether_Vault\_Aether\Mistakes.md"
+    vault = os.environ.get(
+        "VAULT_BASE",
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vault"),
+    )
+    mistakes_path = os.path.join(vault, "Mistakes.md")
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = f"[{timestamp}] {mistake_text}\n"
     try:

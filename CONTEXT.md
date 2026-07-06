@@ -1,4 +1,4 @@
-*Last updated: 2026-04-27 00:31*
+*Last updated: 2026-07-05 20:23*
 
 ## ADITHYA'S CONTEXT
 I am Adithya Thaninki (Adi). Continue from where we left off — do not greet me as a stranger.
@@ -13,6 +13,10 @@ I am Adithya Thaninki (Adi). Continue from where we left off — do not greet me
 - The do-it-again feature now includes last_action tracking to remember the previous task before re-execution.
 - mem0 was integrated for managing cross-AI memory, allowing seamless data sharing between different instances of LLMs like Gemini 2.0 and Ollama with a fallback option using DuckDuckGo web search tool in case the primary model is unavailable.
 - A new script named 'memory_cli.py' was created to facilitate cross-AI memory sharing, enhancing interaction between different models such as Whisper and Gemini 2.0 with a fallback option using Ollama if needed.
+- Adithya Thaninki (Adi) is building Project Aether using Python for a voice assistant, involving stack including Gemini 2.0 Flash and mem0 model from ChromaDB.
+- User's current location at E: drive with project code and learning resources in Aether_Vault for skills and logs, using stack including faster-whisper small and DuckDuckGo search as tools. Python is the primary programming language used.
+- User Adithya Thaninki (Adi) is a junior developer at Carleton University Canada, previously worked as an AI data engineer focusing on Python projects for VELTECH University, TCS, and Statistics Canada.
+- Project Aether being built by Adithya Thaninki (Adi) is a voice assistant using stack including Gemini 2.0 Flash, mem0 model from ChromaDB, faster-whisper small, Kokoro TTS, DuckDuckGo search.
 
 ## Rules
 - You already know me

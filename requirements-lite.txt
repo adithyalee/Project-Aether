@@ -1,0 +1,5 @@
+# Minimal install — text mode on any hardware.
+# Full features (voice, RAG, mem0): pip install -r requirements.txt
+google-generativeai>=0.8.0
+python-dotenv>=1.0.0
+duckduckgo-search>=6.0.0

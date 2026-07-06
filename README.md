@@ -34,6 +34,9 @@ Project Aether acts as a persistent, autonomous assistant that controls the host
 * **Voice Stop Command & Memory Syncing**: Reliable voice interruption using "stop" or "done" keywords, which automatically trigger `memory_cli.py` to synchronize memories across different local environments.
 * **Action Replay ("Do it again")**: Built-in `last_action` tracking to remember and re-execute the previous task automatically.
 * **Instant Greetings**: High-speed interceptor for greetings/basic inputs to respond instantly without hitting the LLM.
+* **Text Mode & Any-Hardware Support**: Text REPL by default (no mic needed); every heavy dependency (voice, RAG, embeddings, mem0) is optional with graceful fallbacks, so Aether runs on low-end machines with just a Gemini key.
+* **Teach Command (self-evolution)**: `teach <name> = <url>` instantly teaches Aether a new skill, stored in the vault and matched semantically (or fuzzily on lite installs) forever after.
+* **Proactive Startup Greeting**: On launch, Aether greets you by time of day and recalls what you were doing last session from the memory log.
 
 ---
 
@@ -63,9 +66,17 @@ cd Project-Aether
 
 ### 2. Install dependencies
 Ensure you have Python 3.10+ installed.
+
+**Lite (any hardware — text chat only, one Gemini key needed):**
+```bash
+pip install -r requirements-lite.txt
+```
+
+**Full (voice, local LLM fallback, RAG, neural memory):**
 ```bash
 pip install -r requirements.txt
 ```
+Every heavy component is optional — Aether detects what's installed and degrades gracefully (no txtai → no semantic cache, no sentence-transformers → fuzzy skill matching, no mic/whisper → text mode).
 
 ### 3. Configuration
 Copy the `.env.example` file to `.env`:
@@ -92,13 +103,21 @@ OLLAMA_VULKAN=1
 
 ## ▶️ Usage
 
-To start Project Aether in voice loop mode:
+To start Project Aether (text chat by default, works without a microphone):
 ```bash
-python main.py
+python main.py           # text REPL
+python main.py --voice   # jump straight into voice mode
 ```
-* Say **"Voice Mode On"** / **"Voice Mode Off"** to toggle speaking.
-* Say **"Stop"** or **"Done"** to exit the voice loop and sync memory to all local workspaces.
+* On start Aether greets you proactively with what you were doing last session.
+* Type or say **"Voice Mode On"** to enter the voice loop; say **"Stop"** or **"Done"** to drop back to text.
+* Teach Aether new skills on the fly: `teach brightspace = brightspace.carleton.ca` — then "open brightspace" works forever.
 * Say **"Switch to Work Mode"** to change Aether's personality to a senior Software Engineering mentor.
+* Type **"exit"** to quit and sync memory to all local workspaces.
+
+To run Aether automatically at login (Windows):
+```powershell
+schtasks /create /tn "Aether" /tr "python \"D:\Project Aether\main.py\"" /sc onlogon
+```
 
 To interact with or synchronize memories via CLI:
 ```bash

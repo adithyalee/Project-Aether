@@ -19,9 +19,19 @@ def find_best_skill(query: str, skills: dict, threshold: float = 0.45) -> tuple[
     Returns:
         (best_name, best_url, score) — or (None, None, 0.0) if no match found
     """
-    model = get_model()
-    if model is None or not skills:
+    if not skills:
         return None, None, 0.0
+
+    model = get_model()
+    if model is None:
+        # ponytail: stdlib difflib fallback — installing sentence-transformers upgrades it
+        import difflib
+        names = list(skills.keys())
+        best_name = max(names, key=lambda n: difflib.SequenceMatcher(None, query.lower(), n.lower()).ratio())
+        score = difflib.SequenceMatcher(None, query.lower(), best_name.lower()).ratio()
+        if score >= threshold:
+            return best_name, skills[best_name], score
+        return None, None, score
 
     try:
         from sentence_transformers.util import cos_sim
