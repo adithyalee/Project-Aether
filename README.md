@@ -1,13 +1,12 @@
 # 🚀 Project Aether: The Self-Evolving Digital Twin
 
-> [!NOTE]
-> **Project Status: ⚠️ Work in Progress**
-> Project Aether is an actively developing private AI voice assistant and digital twin built exclusively for Adithya Thaninki (Adi). It is designed to run locally, automate operating system actions, learn from demonstrations, and manage user preferences and memories recursively.
+> [!TIP]
+> **Hardware Agnostic**: Project Aether is designed to run on any machine regardless of the hardware. Its modular architecture degrades gracefully—running a lightweight text-only assistant on low-end systems or scaling up to a complete voice-controlled assistant with local fallback LLMs on high-end hardware.
 
 ---
 
 ## 🌟 Overview
-Project Aether acts as a persistent, autonomous assistant that controls the host OS, learns from user workflows, and manages the user's digital life. With high-performance voice processing (Whisper/Kokoro) and a dual cognitive model (Gemini 2.0 + local Ollama fallback), Aether acts as a natural extension of the developer.
+Project Aether acts as a persistent, autonomous assistant that controls the host OS, learns from user workflows, and manages the user's digital life. With high-performance voice processing (Whisper/Kokoro) and a dual cognitive model (Gemini 2.0 + local Ollama fallback), Aether acts as a natural extension of any developer or power user.
 
 ---
 
