@@ -60,7 +60,7 @@ Project Aether acts as a persistent, autonomous assistant that controls the host
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/kartik-mem0/Project-Aether.git
+git clone https://github.com/adithyalee/Project-Aether.git
 cd Project-Aether
 ```
 
@@ -179,5 +179,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 📬 Contact
 **Adithya Thaninki (Adi)**
-* **GitHub**: [@kartik-mem0](https://github.com/kartik-mem0)
+* **GitHub**: [@adithyalee](https://github.com/adithyalee)
 * **Status**: Junior Developer at Carleton University
