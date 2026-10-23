@@ -1,22 +1,21 @@
-# 🚀 Project Aether: The Self-Evolving Digital Twin
+# Project Aether
 
-> [!TIP]
-> **Hardware Agnostic**: Project Aether is designed to run on any machine regardless of the hardware. Its modular architecture degrades gracefully—running a lightweight text-only assistant on low-end systems or scaling up to a complete voice-controlled assistant with local fallback LLMs on high-end hardware.
-
----
-
-## 🌟 Overview
-Project Aether acts as a persistent, autonomous assistant that controls the host OS, learns from user workflows, and manages the user's digital life. With high-performance voice processing (Whisper/Kokoro) and a dual cognitive model (Gemini 2.0 + local Ollama fallback), Aether acts as a natural extension of any developer or power user.
+It runs on weak machines too. Everything heavy (voice, local LLM, RAG, memory) is optional, so a low-end laptop gets a text-only assistant and a good one gets the full voice setup.
 
 ---
 
-## 🛠 Tech Stack
+## Overview
+Aether is a personal assistant I'm building for my own machine. It controls the OS, remembers things between sessions and learns new skills when I teach it. Speech runs locally (Whisper in, Kokoro out), and the brain is Gemini 2.0 with a local Ollama model as backup when the API or internet is down.
+
+---
+
+## Tech Stack
 | Component | Tech | Purpose |
 | :--- | :--- | :--- |
 | **Primary Cognition** | **Google Gemini 2.0 Flash** | Fast, high-context reasoning and tool calling. |
 | **Offline Fallback** | **Ollama (`phi4-mini`)** | Local, low-latency backup when API quota/internet is offline. |
 | **Voice Speech-to-Text** | **faster-whisper (small)** | Fast, local voice command transcription. |
-| **Voice Text-to-Speech** | **Kokoro TTS (ONNX)** | Ultra-realistic, natural voice generation. |
+| **Voice Text-to-Speech** | **Kokoro TTS (ONNX)** | Natural-sounding local voice. |
 | **Neural Memory** | **mem0** | Automatic extract-and-store fact management. |
 | **Long-Term Memory** | **Obsidian Vault** | Central knowledge base for preferences, skills, and logs. |
 | **RAG & Semantic Cache** | **ChromaDB / txtai** | Smart caching to bypass LLM latency on repeated commands. |
@@ -24,7 +23,7 @@ Project Aether acts as a persistent, autonomous assistant that controls the host
 
 ---
 
-## 📦 What's Finished Until Now
+## What's Finished Until Now
 * **Dual LLM Pipeline with Key Rotation**: Integrated Gemini 2.0 Flash with automatic fallback to local Ollama (`phi4-mini`) and API key rotation mechanism to handle rate limits.
 * **Local Whisper STT & Kokoro TTS**: Fully offline voice pipeline enabling low-latency transcription and highly realistic speech responses.
 * **Persistent Memory & RAG**: Linked `mem0` memory management for automatic facts extraction and Obsidian Vault acting as the Long-Term Memory (LTM). Added semantic caching via `txtai` to deliver sub-100ms response times for cached commands.
@@ -39,9 +38,9 @@ Project Aether acts as a persistent, autonomous assistant that controls the host
 
 ---
 
-## 🗺 Roadmap & Next Steps (What Needs to be Done)
+## Roadmap & Next Steps (What Needs to be Done)
 ### 1. Dedicated Python GUI
-* [ ] Build a sleek, modern visual interface (using CustomTkinter or a web-based Streamlit local dashboard) to replace the terminal console.
+* [ ] Build a proper visual interface (using CustomTkinter or a web-based Streamlit local dashboard) to replace the terminal console.
 ### 2. Browser "Eyes"
 * [ ] Integrate Playwright or Selenium to automate complex web workflows.
 * [ ] Build navigators to automatically log into Carleton Brightspace, monitor grades, and fetch updates.
@@ -55,7 +54,7 @@ Project Aether acts as a persistent, autonomous assistant that controls the host
 
 ---
 
-## 📥 Installation
+## Installation
 
 ### 1. Clone the repository
 ```bash
@@ -100,7 +99,7 @@ OLLAMA_VULKAN=1
 
 ---
 
-## ▶️ Usage
+## ▶Usage
 
 To start Project Aether (text chat by default, works without a microphone):
 ```bash
@@ -125,7 +124,7 @@ python memory_cli.py sync
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Project-Aether/
@@ -152,9 +151,9 @@ Project-Aether/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-We want to make Project Aether as powerful, self-evolving, and robust as possible! Contributions from the community are highly welcome. 
+Contributions are welcome. 
 
 If you want to contribute, please:
 1. Fork the repository.
@@ -164,19 +163,19 @@ If you want to contribute, please:
 5. Open a Pull Request.
 
 **High priority areas where we need help:**
-* Sleek CustomTkinter UI widgets.
+* CustomTkinter UI widgets.
 * Playwright scripts for Carleton Brightspace automation.
 * Custom speech triggers and gesture recognition integrations.
 * Performance optimizations for running heavy voice models on local CPUs/GPUs.
 
 ---
 
-## 📄 License
+## License
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## 📬 Contact
+## Contact
 **Adithya Thaninki (Adi)**
 * **GitHub**: [@adithyalee](https://github.com/adithyalee)
 * **Status**: Junior Developer at Carleton University
