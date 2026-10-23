@@ -18,3 +18,10 @@ tts/*.bin
 # Temp
 .graphify_python
 *.graphify_detect.json
+
+# local tooling
+.agents/
+.cursor/
+.cursorrules
+graphify-out/
+.graphify_*
